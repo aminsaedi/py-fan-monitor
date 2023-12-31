@@ -1,6 +1,7 @@
 from PCF8574 import PCF8574_GPIO
 from Adafruit_LCD1602 import Adafruit_CharLCD
 
+from gpiozero import Button
 from time import sleep
 
 
@@ -11,20 +12,35 @@ def get_cpu_temp():
     return "{:.2f}".format(float(cpu) / 1000) + " C"
 
 
+fan_level = -1
+
+
 def get_fan_level():
     tmp = open("/sys/class/thermal/cooling_device0/cur_state")
     fan = tmp.read()
     tmp.close()
-    return fan
+    global fan_level
+    fan_level = int(fan)
+
+
+def set_fan_level(level):
+    if level < 0:
+        level = 0
+    if level > 4:
+        level = 4
+    tmp = open("/sys/class/thermal/cooling_device0/cur_state", "w")
+    tmp.write(str(level))
+    tmp.close()
 
 
 def loop():
     mcp.output(3, 1)
     lcd.begin(16, 2)
     while True:
+        get_fan_level()
         lcd.setCursor(0, 0)
         lcd.message("CPU: " + get_cpu_temp() + "\n")
-        lcd.message("FAN: " + get_fan_level() + "\n")
+        lcd.message("FAN: " + str(fan_level))
 
         sleep(1)
 
@@ -46,6 +62,14 @@ except IOError:
         exit(1)
 
 lcd = Adafruit_CharLCD(pin_rs=0, pin_e=2, pins_db=[4, 5, 6, 7], GPIO=mcp)
+
+
+up_button = Button("BOARD38")
+down_button = Button("BOARD40")
+
+
+up_button.when_pressed = lambda: set_fan_level(fan_level + 1)
+down_button.when_pressed = lambda: set_fan_level(fan_level - 1)
 
 if __name__ == "__main__":
     print("Program is starting ... ")

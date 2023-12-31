@@ -3,6 +3,10 @@ from Adafruit_LCD1602 import Adafruit_CharLCD
 
 from gpiozero import Button
 from time import sleep
+import argparse
+
+parser = argparse.ArgumentParser()
+parser.add_argument("--stop", action="store_true", help="Stop switch")
 
 
 def get_cpu_temp():
@@ -71,7 +75,11 @@ down_button = Button("BOARD40")
 up_button.when_pressed = lambda: set_fan_level(fan_level + 1)
 down_button.when_pressed = lambda: set_fan_level(fan_level - 1)
 
-if __name__ == "__main__":
+args = parser.parse_args()
+if args.stop:
+    set_fan_level(0)
+    lcd.clear()
+else:
     print("Program is starting ... ")
     try:
         loop()
